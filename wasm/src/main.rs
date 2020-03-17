@@ -32,7 +32,7 @@ fn fork_entry_point1(data: u64) -> u64 {
     let input = unsafe { std::slice::from_raw_parts(data_ptr, data_len) };
     let mut v = 0;
     for i in 1..1000 {
-        debug(&format!("forked with message: {}/{}", unsafe { std::str::from_utf8_unchecked(input) }, v));
+        debug(&format!("fork1: (msg: {})/{}", unsafe { std::str::from_utf8_unchecked(input) }, v));
         for t in 0..100000000 { v = (v + t) % i}
     }
     0
@@ -41,7 +41,8 @@ fn fork_entry_point1(data: u64) -> u64 {
 #[no_mangle]
 unsafe extern "C" fn run() {
     debug("started");
-    let _handle3 = fork(fork_entry_point1, "fork rules!".as_bytes().to_vec());
+    let _handle1 = fork(fork_entry_point1, "fork rules!".as_bytes().to_vec());
+    let _handle2 = fork(fork_entry_point1, "fork double-rules!".as_bytes().to_vec());
     debug("done");
 }
 
