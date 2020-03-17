@@ -55,7 +55,14 @@ impl Callable for Fork {
         results: &mut [Val],
     ) -> Result<(), wasmtime::Trap> {
         let entry_point = params[0].unwrap_i32();
-        let data = params[1].unwrap_i64();
+        let data_desc = params[1].unwrap_i64() as u64;
+
+        let memb = self.memory.borrow();
+        let memory = memb.as_ref().expect("Memory should be set");
+
+        let data_start = (data_desc >> 32) as usize;
+        let data_len = (data_desc & 0x00000000FFFFFFFF) as usize;
+        let data = unsafe { memory.data_unchecked()[data_start..data_start + data_len].to_vec() };
 
         let number = self.module.next_pid() as i32;
         let module_clone = self.module.clone();

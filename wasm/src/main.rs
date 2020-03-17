@@ -32,10 +32,18 @@ fn fork_entry_point1(data: u64) -> u64 {
     let input = unsafe { std::slice::from_raw_parts(data_ptr, data_len) };
     let mut v = 0;
     for i in 1..1000 {
-        debug(&format!("fork1: (msg: {})/{}", unsafe { std::str::from_utf8_unchecked(input) }, v));
+        debug(&format!("Gfork({})/{}", unsafe { std::str::from_utf8_unchecked(input) }, v));
         for t in 0..100000000 { v = (v + t) % i}
     }
     0
+}
+
+#[no_mangle]
+unsafe extern "C" fn allocate(num_bytes: usize) -> *const u8 {
+    let data = vec![0u8; num_bytes];
+    let result = data.as_ptr();
+    std::mem::forget(data);
+    result
 }
 
 #[no_mangle]
