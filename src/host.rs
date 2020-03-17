@@ -1,7 +1,9 @@
 use std::sync::{Arc, atomic::{AtomicUsize, Ordering as AtomicOrdering}};
-use std::{rc::Rc, cell::RefCell};
+use std::{rc::Rc, cell::RefCell, collections::HashMap};
 use wasmtime::{Callable, Memory, Extern, Func, FuncType, ValType, Store, Module, Val, Instance};
 use anyhow::{Result, anyhow};
+
+use crate::runner;
 
 #[derive(Clone)]
 pub struct ModuleWrapper {
@@ -32,6 +34,18 @@ struct Fork {
     module: ModuleWrapper,
     memory: RefCell<Option<Memory>>,
     entry_func: RefCell<Option<Func>>,
+    forks: RefCell<HashMap<u32, tokio::task::JoinHandle<u64>>>,
+}
+
+impl Fork {
+    pub fn new(module: ModuleWrapper) -> Self {
+        Self {
+            module,
+            memory: None.into(),
+            entry_func: None.into(),
+            forks: HashMap::new().into(),
+        }
+    }
 }
 
 impl Callable for Fork {
@@ -43,11 +57,15 @@ impl Callable for Fork {
         let entry_point = params[0].unwrap_i32();
         let data = params[1].unwrap_i64();
 
-        self.entry_func
-            .borrow().as_ref().expect("should be set at this point")
-            .call(&[entry_point.into(), data.into()]).expect("Forked func failed");
+        let number = self.module.next_pid() as i32;
+        let module_clone = self.module.clone();
+        let handle = tokio::spawn(async move {
+            runner::fork_module(module_clone, entry_point, data).expect("failed to execute fork") as u64
+        });
 
-        results[0] = 0.into();
+        self.forks.borrow_mut().insert(number as u32, handle);
+
+        results[0] = number.into();
 
         Ok(())
     }
@@ -104,7 +122,7 @@ pub fn generate_imports(
     store: &Store,
     module: ModuleWrapper,
 ) -> (Vec<Rc<dyn PostInitialize>>, Vec<Extern>) {
-    let fork = Rc::new(Fork { module: module.clone(), memory: None.into(), entry_func: None.into() });
+    let fork = Rc::new(Fork::new(module.clone()));
     let fork_extern = Extern::Func(Func::new(
         store,
         FuncType::new(Box::new([ValType::I32, ValType::I64]), Box::new([ValType::I32])),

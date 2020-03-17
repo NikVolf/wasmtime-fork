@@ -30,7 +30,11 @@ fn fork_entry_point1(data: u64) -> u64 {
     let data_ptr = (data >> 32) as usize as *const u8;
     let data_len = (data & 0x00000000FFFFFFFF) as usize;
     let input = unsafe { std::slice::from_raw_parts(data_ptr, data_len) };
-    debug(&format!("forked with message: {}", unsafe { std::str::from_utf8_unchecked(input) }));
+    let mut v = 0;
+    for i in 1..1000 {
+        debug(&format!("forked with message: {}/{}", unsafe { std::str::from_utf8_unchecked(input) }, v));
+        for t in 0..100000000 { v = (v + t) % i}
+    }
     0
 }
 
