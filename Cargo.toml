@@ -14,3 +14,6 @@ tokio = { version = "0.2", features = ["full"] }
 [[bin]]
 name = "wfork"
 path = "src/main.rs"
+
+[workspace]
+members = ["./", "./wasm"]

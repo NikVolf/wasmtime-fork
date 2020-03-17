@@ -41,7 +41,7 @@ impl Callable for Fork {
         results: &mut [Val],
     ) -> Result<(), wasmtime::Trap> {
         let entry_point = params[0].unwrap_i32();
-        let data = params[0].unwrap_i64();
+        let data = params[1].unwrap_i64();
 
         self.entry_func
             .borrow().as_ref().expect("should be set at this point")
