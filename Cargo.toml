@@ -1,0 +1,16 @@
+[package]
+name = "wasmtime-fork"
+version = "0.1.0"
+authors = ["NikVolf <nikvolf@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wasmtime = { git = "https://github.com/paritytech/wasmtime", branch = "a-thread-safe-api" }
+anyhow = "1.0.19"
+tokio = { version = "0.2", features = ["full"] }
+
+[[bin]]
+name = "wfork"
+path = "src/main.rs"
