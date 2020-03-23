@@ -11,6 +11,7 @@ wasmtime = { git = "https://github.com/paritytech/wasmtime", branch = "a-thread-
 anyhow = "1.0.19"
 tokio = { version = "0.2", features = ["full"] }
 futures = "0.3.4"
+parking_lot = "*"
 
 [[bin]]
 name = "wfork"

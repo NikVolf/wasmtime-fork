@@ -2,6 +2,7 @@ use std::sync::{Arc, atomic::{AtomicUsize, Ordering as AtomicOrdering}};
 use std::{rc::Rc, cell::RefCell, collections::HashMap};
 use wasmtime::{Callable, Memory, Extern, Func, FuncType, ValType, Store, Module, Val, Instance};
 use anyhow::{Result, anyhow};
+use parking_lot::Mutex;
 
 use crate::runner;
 
@@ -34,7 +35,7 @@ struct Fork {
     module: ModuleWrapper,
     memory: RefCell<Option<Memory>>,
     entry_func: RefCell<Option<Func>>,
-    forks: RefCell<HashMap<u32, tokio::task::JoinHandle<u64>>>,
+    forks: Arc<Mutex<HashMap<u32, tokio::task::JoinHandle<u64>>>>,
 }
 
 impl Fork {
@@ -43,7 +44,7 @@ impl Fork {
             module,
             memory: None.into(),
             entry_func: None.into(),
-            forks: HashMap::new().into(),
+            forks: Mutex::new(HashMap::new()).into(),
         }
     }
 }
@@ -70,7 +71,7 @@ impl Callable for Fork {
             runner::fork_module(module_clone, entry_point, data).expect("failed to execute fork") as u64
         });
 
-        self.forks.borrow_mut().insert(number as u32, handle);
+        self.forks.lock().insert(number as u32, handle);
 
         results[0] = number.into();
 
