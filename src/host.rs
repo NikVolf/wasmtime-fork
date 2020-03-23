@@ -12,6 +12,21 @@ pub struct ModuleWrapper {
     counter: Arc<AtomicUsize>,
 }
 
+#[derive(Clone)]
+pub struct RunningContext {
+    forks: Arc<Mutex<HashMap<u32, tokio::task::JoinHandle<u64>>>>,
+    store: Store,
+}
+
+impl Default for RunningContext {
+    fn default() -> Self {
+        Self {
+            store: Store::default(),
+            forks: Arc::new(Mutex::new(HashMap::new()))
+        }
+    }
+}
+
 impl From<Module> for ModuleWrapper {
     fn from(module: Module) -> Self {
         ModuleWrapper {
@@ -39,12 +54,12 @@ struct Fork {
 }
 
 impl Fork {
-    pub fn new(module: ModuleWrapper) -> Self {
+    pub fn new(running_context: &RunningContext, module: ModuleWrapper) -> Self {
         Self {
             module,
             memory: None.into(),
             entry_func: None.into(),
-            forks: Mutex::new(HashMap::new()).into(),
+            forks: running_context.forks.clone(),
         }
     }
 }
@@ -127,19 +142,19 @@ impl Callable for Debug {
 }
 
 pub fn generate_imports(
-    store: &Store,
+    running_context: &RunningContext,
     module: ModuleWrapper,
 ) -> (Vec<Rc<dyn PostInitialize>>, Vec<Extern>) {
-    let fork = Rc::new(Fork::new(module.clone()));
+    let fork = Rc::new(Fork::new(running_context, module.clone()));
     let fork_extern = Extern::Func(Func::new(
-        store,
+        &running_context.store,
         FuncType::new(Box::new([ValType::I32, ValType::I64]), Box::new([ValType::I32])),
         fork.clone(),
     ));
 
     let debug = Rc::new(Debug { id: module.next_pid(), memory: None.into() });
     let debug_extern = Extern::Func(Func::new(
-        store,
+        &running_context.store,
         FuncType::new(Box::new([ValType::I32, ValType::I32]), Box::new([])),
         debug.clone(),
     ));

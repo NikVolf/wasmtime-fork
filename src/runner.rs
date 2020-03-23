@@ -3,8 +3,8 @@ use crate::host;
 use wasmtime::{Store, Instance};
 
 pub fn run_module(module: host::ModuleWrapper) -> Result<()> {
-    let store = Store::default();
-    let (imports, externs) = host::generate_imports(&store, module.clone());
+    let running_context = host::RunningContext::default();
+    let (imports, externs) = host::generate_imports(&running_context, module.clone());
     let instance = Instance::new(module.as_ref(), &externs)?;
     host::post_initialize(&imports, &instance);
     run_instance(&instance)?;
@@ -13,8 +13,8 @@ pub fn run_module(module: host::ModuleWrapper) -> Result<()> {
 }
 
 pub fn fork_module(module: host::ModuleWrapper, entry_point: i32, payload: Vec<u8>) -> Result<i64> {
-    let store = Store::default();
-    let (imports, externs) = host::generate_imports(&store, module.clone());
+    let running_context = host::RunningContext::default();
+    let (imports, externs) = host::generate_imports(&running_context, module.clone());
     let instance = Instance::new(module.as_ref(), &externs)?;
     host::post_initialize(&imports, &instance);
 
