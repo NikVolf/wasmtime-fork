@@ -2,13 +2,16 @@ mod host;
 mod runner;
 
 use anyhow::Result;
-use wasmtime::{Module, Store};
+use wasmtime::{Module, Store, Config, Engine};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let file_name = std::env::args().nth(1).expect("wfork <filename.wasm>");
 
-    runner::run_module(host::ModuleWrapper::from(Module::from_file(&Store::default(), file_name)?))?;
+    let config = Config::default();
+    let engine = Engine::new(&config);
+
+    runner::run_module(&engine, host::ModuleWrapper::new(Module::from_file(&engine, file_name)?))?;
 
     Ok(())
 }

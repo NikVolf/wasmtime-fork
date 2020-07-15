@@ -1,32 +1,32 @@
 use anyhow::Result;
 use crate::host;
-use wasmtime::{Store, Instance};
+use wasmtime::{Engine, Store, Instance};
 
-pub fn run_module(module: host::ModuleWrapper) -> Result<()> {
-    let running_context = host::RunningContext::default();
+pub fn run_module(engine: &Engine, module: host::ModuleWrapper) -> Result<()> {
+    let running_context = host::RunningContext::with_engine(engine);
     let (imports, externs) = host::generate_imports(&running_context, module.clone());
-    let instance = Instance::new(module.as_ref(), &externs)?;
+    let instance = Instance::new(running_context.store(), module.as_ref(), &externs)?;
     host::post_initialize(&imports, &instance);
     run_instance(&instance)?;
 
     Ok(())
 }
 
-pub fn fork_module(module: host::ModuleWrapper, entry_point: i32, payload: Vec<u8>) -> Result<i64> {
-    let running_context = host::RunningContext::default();
+pub fn fork_module(engine: &Engine, module: host::ModuleWrapper, entry_point: i32, payload: Vec<u8>) -> Result<i64> {
+    let running_context = host::RunningContext::with_engine(engine);
     let (imports, externs) = host::generate_imports(&running_context, module.clone());
-    let instance = Instance::new(module.as_ref(), &externs)?;
+    let instance = Instance::new(running_context.store(), module.as_ref(), &externs)?;
     host::post_initialize(&imports, &instance);
 
     let invoke = instance
         .get_export("invoke")
-        .and_then(|e| e.func())
+        .and_then(|e| e.into_func())
         .ok_or(anyhow::format_err!("failed to find `invoke` function export"))?
         .get2::<i32, i64, i64>()?;
 
     let allocate = instance
         .get_export("allocate")
-        .and_then(|e| e.func())
+        .and_then(|e| e.into_func())
         .ok_or(anyhow::format_err!("failed to find `allocate` function export"))?
         .get1::<i32, i32>()?;
 
@@ -47,7 +47,7 @@ pub fn fork_module(module: host::ModuleWrapper, entry_point: i32, payload: Vec<u
 fn run_instance(instance: &Instance) -> Result<()> {
     let run = instance
         .get_export("run")
-        .and_then(|e| e.func())
+        .and_then(|e| e.into_func())
         .ok_or(anyhow::format_err!("failed to find `run` function export"))?
         .get0::<()>()?;
 

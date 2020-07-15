@@ -32,7 +32,7 @@ fn fork_entry_point1(data: u64) -> u64 {
     let input = unsafe { std::slice::from_raw_parts(data_ptr, data_len) };
     let mut v = 0;
     for i in 1..1000 {
-        debug(&format!("Gfork({})/{}", unsafe { std::str::from_utf8_unchecked(input) }, v));
+        debug(&format!("fork(init: \"{}\")/seed:{}", unsafe { std::str::from_utf8_unchecked(input) }, v));
         for t in 0..100000000 { v = (v + t) % i}
     }
     0
