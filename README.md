@@ -17,7 +17,7 @@ fork(i32, i64) -> i32
 
 2. Embedded program calls to the `fork(&some_func, &payload)`.
 
-3. Host spawns new thread and creates new instance in that thread based on the same compiled module (this why we use fork - so that wasmtime compiled `Module` could be `Send`).
+3. Host spawns new thread and creates new instance in that thread based on the same compiled module.
 
 4. Host allocates memory inside child instance and writes payload to it (embedded progam should expose `allocate` function)
 
